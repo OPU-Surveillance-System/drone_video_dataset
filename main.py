@@ -1,8 +1,15 @@
-import sys, os, random, mimetypes, json, hashlib
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QGridLayout, QLabel
-from PyQt5.QtGui import QPixmap, QImage
-from PyQt5.QtCore import QByteArray, Qt
+import hashlib
+import json
+import mimetypes
+import os
+import random
+import sys
+
 import imageio
+from PyQt5.QtCore import QByteArray, Qt
+from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtWidgets import (QApplication, QGridLayout, QLabel, QPushButton,
+                             QWidget)
 
 VIDEOS_PATH = 'DroneProtect-training-set/'
 
