@@ -1,17 +1,35 @@
-import sys, os, random, mimetypes, json
+import sys, os, random, mimetypes, json, hashlib
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QGridLayout, QLabel
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtCore import QByteArray, Qt
 import imageio
 
-VIDEOS_PATH = 'DroneProtect-testing-set/'
+VIDEOS_PATH = 'DroneProtect-training-set/'
+
+def sha1(filename):
+    BUF_SIZE = 65536
+    sha1 = hashlib.sha1()
+
+    with open(filename, 'rb') as f:
+        while True:
+            data = f.read(BUF_SIZE)
+            if not data:
+                break
+            sha1.update(data)
+    return sha1.hexdigest()
 
 class Window(QWidget):
     
     def __init__(self, videosPath):
         super().__init__()
+        self.setWindowTitle('Initialization...')            
         
-        self.videos = [videosPath + f for f in os.listdir(VIDEOS_PATH) if mimetypes.guess_type(f)[0] is not None and mimetypes.guess_type(f)[0].split('/')[0] == 'video']
+        self.videosPath = videosPath
+        self.videos = [videosPath + f for f in os.listdir(videosPath) if mimetypes.guess_type(f)[0] is not None and mimetypes.guess_type(f)[0].split('/')[0] == 'video']
+
+        self.load_dataset()
+        self.save_dataset()
+
 
         self.initUI()
         self.load_image()
@@ -36,25 +54,72 @@ class Window(QWidget):
         
         self.setLayout(self.grid)    
         
-        self.setWindowTitle('--')    
         self.show()
 
-    def load_save(self):
-        x = 0
+    def initialize_dataset(self):
+        self.dataset = {}
+        for video in self.videos:
+            reader = imageio.get_reader(video)
+            n = reader.get_length()
+
+            self.dataset[video] = {
+                'sha1': sha1(video),
+                'frames_count': n,
+                'frames': {}
+            }
+
+    def load_dataset(self):
+        fname = self.videosPath + 'dataset.jsons'
+        if os.path.isfile(fname):
+            with open(fname) as f:
+                self.dataset = json.load(f)
+        else:
+            self.initialize_dataset()
+
+    def save_dataset(self):
+        fname = self.videosPath + 'dataset.jsons'        
+        with open(fname, 'w') as outfile:
+            json.dump(self.dataset, outfile, indent=4)
+            outfile.close()
+    
+
+    def keyPressEvent(self, event):
+
+        if event.key() == Qt.Key_Escape:
+            self.close()
+        elif event.key() in [Qt.Key_Enter, Qt.Key_A, Qt.Key_S, Qt.Key_D, Qt.Key_F]:
+            self.accept()
+        elif event.key() in [Qt.Key_Backspace, Qt.Key_J, Qt.Key_K, Qt.Key_L, Qt.Key_Semicolon]:
+            self.refuse()
 
     def accept(self):
+        self.dataset[self.current[0]]['frames'][str(self.current[1])] = True
+        self.save_dataset()
         self.load_image()
     
     def refuse(self):
+        self.dataset[self.current[0]]['frames'][str(self.current[1])] = False        
+        self.save_dataset()
         self.load_image()
 
     def load_image(self):
-        video = random.choice(self.videos)
+        filtered_videos = list(filter(lambda video: (len(self.dataset[video]['frames']) < self.dataset[video]['frames_count']) ,self.videos))
+
+        if len(filtered_videos) == 0:
+            print('No frame left')
+            self.close()
+            sys.exit()
+
+        video = random.choice(filtered_videos)
         reader = imageio.get_reader(video)
 
         n = reader.get_length()
-        i = random.randrange(0, n)
+        i = random.choice(list(filter(lambda j: self.dataset[video]['frames'].get(str(j)) is None, range(0, n))))
         frame = reader.get_data(i)
+
+        self.current = (video, i)
+        self.setWindowTitle('%s, frame %i' % self.current)            
+        
 
         image = QImage(frame, frame.shape[1], frame.shape[0], frame.shape[1] * 3, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(image)
