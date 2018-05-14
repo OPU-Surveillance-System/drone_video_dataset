@@ -18,6 +18,7 @@ VIDEOS_PATH = 'test/'
 
 
 def sha1(filename):
+    """Return the sha1 of a file"""
     BUF_SIZE = 65536
     sha1 = hashlib.sha1()
 
@@ -88,6 +89,11 @@ class Window(QWidget):
         if os.path.isfile(fname):
             with open(fname) as f:
                 self.dataset = json.load(f)
+                for video, data in self.dataset.items():   
+                    self.dataset[video]['frames'] = {
+                        int(k): v
+                        for k, v in data['frames'].items()
+                    }
         else:
             self.initialize_dataset()
 
@@ -112,12 +118,12 @@ class Window(QWidget):
                 self.refuse()
 
     def accept(self):
-        self.dataset[self.current[0]]['frames'][str(self.current[1])] = True
+        self.dataset[self.current[0]]['frames'][int(self.current[1])] = True
         self.save_dataset()
         self.load_image()
 
     def refuse(self):
-        self.dataset[self.current[0]]['frames'][str(self.current[1])] = False
+        self.dataset[self.current[0]]['frames'][int(self.current[1])] = False
         self.save_dataset()
         self.load_image()
 
@@ -142,7 +148,7 @@ class Window(QWidget):
         i = random.choice(list(
             filter(
                 lambda j:
-                    self.dataset[video]['frames'].get(str(j)) is None,
+                    self.dataset[video]['frames'].get(int(j)) is None,
                 range(0, n)
             )
         ))
