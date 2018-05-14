@@ -8,10 +8,11 @@ import sys
 import imageio
 from PyQt5.QtCore import QByteArray, Qt
 from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtWidgets import (QApplication, QGridLayout, QLabel, QPushButton,
-                             QWidget)
+from PyQt5.QtWidgets import (QApplication, QGridLayout, QLabel,
+                             QPushButton, QWidget)
 
-VIDEOS_PATH = 'DroneProtect-training-set/'
+# VIDEOS_PATH = 'DroneProtect-training-set/'
+VIDEOS_PATH = 'test/'
 
 def sha1(filename):
     BUF_SIZE = 65536
@@ -94,10 +95,11 @@ class Window(QWidget):
 
         if event.key() == Qt.Key_Escape:
             self.close()
-        elif event.key() in [Qt.Key_Enter, Qt.Key_A, Qt.Key_S, Qt.Key_D, Qt.Key_F]:
-            self.accept()
-        elif event.key() in [Qt.Key_Backspace, Qt.Key_J, Qt.Key_K, Qt.Key_L, Qt.Key_Semicolon]:
-            self.refuse()
+        if self.current is not None:
+            if event.key() in [Qt.Key_Enter, Qt.Key_A, Qt.Key_S, Qt.Key_D, Qt.Key_F]:
+                self.accept()
+            elif event.key() in [Qt.Key_Backspace, Qt.Key_J, Qt.Key_K, Qt.Key_L, Qt.Key_Semicolon]:
+                self.refuse()
 
     def accept(self):
         self.dataset[self.current[0]]['frames'][str(self.current[1])] = True
@@ -113,9 +115,8 @@ class Window(QWidget):
         filtered_videos = list(filter(lambda video: (len(self.dataset[video]['frames']) < self.dataset[video]['frames_count']) ,self.videos))
 
         if len(filtered_videos) == 0:
-            print('No frame left')
-            self.close()
-            sys.exit()
+            self.end()
+            return
 
         video = random.choice(filtered_videos)
         reader = imageio.get_reader(video)
@@ -125,13 +126,24 @@ class Window(QWidget):
         frame = reader.get_data(i)
 
         self.current = (video, i)
-        self.setWindowTitle('%s, frame %i' % self.current)            
+        self.setWindowTitle('%s, frame %i/%i' % (video, i, n))            
         
 
         image = QImage(frame, frame.shape[1], frame.shape[0], frame.shape[1] * 3, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(image)
         smaller_pixmap = pixmap.scaled(800, 800, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.imageWidget.setPixmap(smaller_pixmap)
+
+    def end(self):
+        label = QLabel("Every frames have been labeled, thank you.")
+        label.setAlignment(Qt.AlignCenter | Qt.AlignVCenter)
+        self.grid.addWidget(label, 0, 0, 1, 2)
+
+        self.imageWidget.setHidden(True)
+        self.acceptButton.setHidden(True)
+        self.refuseButton.setHidden(True)
+
+        self.current = None
         
         
 if __name__ == '__main__':
