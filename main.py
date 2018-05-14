@@ -10,13 +10,14 @@ import sys
 import imageio
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtWidgets import (QApplication, QGridLayout, QLabel,
-                             QPushButton, QWidget)
+from PyQt5.QtWidgets import (QApplication, QGridLayout, QLabel, QPushButton,
+                             QWidget)
 
 VIDEOS_PATH = 'DroneProtect-training-set/'
 
+
 def sha1(filename):
-    """Return the sha1 of a file"""
+    """Return the sha1 of a file."""
     BUF_SIZE = 65536
     sha1 = hashlib.sha1()
 
@@ -50,6 +51,7 @@ class Window(QWidget):
         self.load_image()
 
     def initUI(self):
+        """Initialize the UI."""
         self.acceptButton = QPushButton("Normal")
         self.refuseButton = QPushButton("Anormal")
 
@@ -71,6 +73,7 @@ class Window(QWidget):
         self.show()
 
     def initialize_dataset(self):
+        """Generate a new dataset."""
         self.dataset = {}
         for video in self.videos:
             reader = imageio.get_reader(video)
@@ -83,11 +86,12 @@ class Window(QWidget):
             }
 
     def load_dataset(self):
+        """Load an already existing dataset or initialize a new one."""
         fname = self.videosPath + 'dataset.jsons'
         if os.path.isfile(fname):
             with open(fname) as f:
                 self.dataset = json.load(f)
-                for video, data in self.dataset.items():   
+                for video, data in self.dataset.items():
                     self.dataset[video]['frames'] = {
                         int(k): v
                         for k, v in data['frames'].items()
@@ -96,12 +100,19 @@ class Window(QWidget):
             self.initialize_dataset()
 
     def save_dataset(self):
+        """Save data to `dataset.json` along side the videos."""
         fname = self.videosPath + 'dataset.jsons'
         with open(fname, 'w') as outfile:
-            json.dump(self.dataset, outfile, indent=4, sort_keys=True)
+            json.dump(self.dataset, outfile, indent=2, sort_keys=True)
             outfile.close()
 
     def keyPressEvent(self, event):
+        """Handle key pressed event.
+
+        Escape: Close program
+        Enter, A, S, D, F : Label frame as normal
+        Backspace, J, K, L, `;` : Label frane as anormal
+        """
         if event.key() == Qt.Key_Escape:
             self.close()
         if self.current is not None:
@@ -116,16 +127,21 @@ class Window(QWidget):
                 self.refuse()
 
     def accept(self):
+        """Label current frame as normal and load the next frame"""
         self.dataset[self.current[0]]['frames'][int(self.current[1])] = True
         self.save_dataset()
         self.load_image()
 
     def refuse(self):
+        """Label current frame as anormal and load the next frame"""
         self.dataset[self.current[0]]['frames'][int(self.current[1])] = False
         self.save_dataset()
         self.load_image()
 
     def load_image(self):
+        """Select a random unlabeled frame from all videos"""
+
+        # Ignore fully labeled videos
         filtered_videos = list(
             filter(
                 lambda video:
@@ -143,6 +159,8 @@ class Window(QWidget):
         reader = imageio.get_reader(video)
 
         n = reader.get_length()
+
+        # Select a random frame from those who are not labeled
         i = random.choice(list(
             filter(
                 lambda j:
@@ -164,6 +182,7 @@ class Window(QWidget):
         self.imageWidget.setPixmap(smaller_pixmap)
 
     def end(self):
+        """Display a message and unset current"""
         label = QLabel("Every frames have been labeled, thank you.")
         label.setAlignment(Qt.AlignCenter | Qt.AlignVCenter)
         self.grid.addWidget(label, 0, 0, 1, 2)
