@@ -13,9 +13,7 @@ from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import (QApplication, QGridLayout, QLabel,
                              QPushButton, QWidget)
 
-# VIDEOS_PATH = 'DroneProtect-training-set/'
-VIDEOS_PATH = 'test/'
-
+VIDEOS_PATH = 'DroneProtect-training-set/'
 
 def sha1(filename):
     """Return the sha1 of a file"""
