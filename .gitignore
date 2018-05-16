@@ -5,3 +5,4 @@ venv
 avenue_dataset
 DroneProtect-*
 test/
+__pycache__
