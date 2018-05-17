@@ -33,7 +33,7 @@ class LabelingWidget(QWidget):
 
         self.videosPath = videosPath
         self.videos = [
-            videosPath + f for f in os.listdir(videosPath) if (
+            f for f in os.listdir(videosPath) if (
                 mimetypes.guess_type(f)[0] is not None and
                 mimetypes.guess_type(f)[0].split('/')[0] == 'video'
             )
@@ -57,7 +57,6 @@ class LabelingWidget(QWidget):
 
         self.grid = QGridLayout()
         self.grid.setSpacing(10)
-        self.grid.setRowStretch(0, 2)
 
         self.grid.addWidget(self.imageWidget, 0, 0, 1, 2)
         self.grid.addWidget(self.acceptButton, 1, 0)
@@ -69,11 +68,11 @@ class LabelingWidget(QWidget):
         """Generate a new dataset."""
         self.dataset = {}
         for video in self.videos:
-            reader = imageio.get_reader(video)
+            reader = imageio.get_reader(self.videosPath + video)
             n = reader.get_length()
 
             self.dataset[video] = {
-                'sha1': sha1(video),
+                'sha1': sha1(self.videosPath + video),
                 'frames_count': n,
                 'frames': {}
             }
@@ -146,7 +145,7 @@ class LabelingWidget(QWidget):
             return
 
         video = random.choice(filtered_videos)
-        reader = imageio.get_reader(video)
+        reader = imageio.get_reader(self.videosPath + video)
 
         n = reader.get_length()
 
